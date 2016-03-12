@@ -112,7 +112,7 @@ void get_r_t_matrix_by_points(CvMat* out_r_matrix, CvMat* out_t_matrix, CvMat * 
 }
 
 //校准图像上的2d坐标
-void adjust_2d_point_uv(CvMat * cam_intrinsic_matrix, CvMat * cam_distortion_coeffs,int x, int y, float& u, float& v) {
+void adjust_2d_point_uv(CvMat * cam_intrinsic_matrix, CvMat * cam_distortion_coeffs,double x, double y, float& u, float& v) {
 	CvMat * src_2dpoint = cvCreateMat(1, 1, CV_64FC2);
 	CvMat * dst_2dpoint = cvCreateMat(1, 1, CV_64FC2);
 	src_2dpoint->data.db[0] = x;
@@ -138,127 +138,6 @@ void adjust_2d_point_uv(CvMat * cam_intrinsic_matrix, CvMat * cam_distortion_coe
 }
 
 
-void cam_test()
-{
-	float cam_intrinsic[9]  = 
-	{
-		1443.19825,	0,			900.76779,
-		0,			1446.37588,	552.74644,
-		0,			0,			1
-	};
-
-	float cam_distortion[5] = 
-	//	{0.00000};
-	{  -0.11519,   -0.07809,   -0.01185,   -0.00344,  0.00000};
-
-
-	float cam_intrinsic2[9]  = 
-	{
-		1498.04048,	0,			934.73521,
-		0,			1506.41293,	554.47105,
-		0,			0,			1
-	};
-
-	float cam_distortion2[5] = 
-	//	{0.00000};
-	{  -0.12837,   0.17892,   -0.00282,   -0.00046,  0.00000};
-
-	CvMat * cam_intrinsic_matrix = cvCreateMat(3,3,CV_32FC1);
-	CvMat * cam_distortion_coeffs= cvCreateMat(1,5,CV_32FC1);
-
-	memcpy(cam_intrinsic_matrix->data.fl,cam_intrinsic,sizeof(float)*9);
-	memcpy(cam_distortion_coeffs->data.fl,cam_distortion,sizeof(float)*5);
-
-
-	CvMat * cam_intrinsic_matrix2 = cvCreateMat(3,3,CV_32FC1);
-	CvMat * cam_distortion_coeffs2= cvCreateMat(1,5,CV_32FC1);
-
-	memcpy(cam_intrinsic_matrix2->data.fl,cam_intrinsic,sizeof(float)*9);
-	memcpy(cam_distortion_coeffs2->data.fl,cam_distortion,sizeof(float)*5);
-
-	CvMat * mat_Img = cvCreateMat(5,2,CV_32F);
-	CvMat * mat_World = cvCreateMat(5,3,CV_64F);
-
-	float point_2d_1[10] = {
-		949,766,
-		1568,555,
-		1496,264,
-		1203,161,
-		453,266
-	};
-
-	double point_3d_1[15] = {
-		2552, 4000,0,     	
-		6600, 4000,0,    		
-		10618,8000,0,    		
-		10618,12000,0,    		
-		2552,12000,0		
-	};
-
-
-	float point_2d_2[10] = {
-		1418,369,
-		675,218,	
-		376,307,	
-		273,603,	
-		894,866		
-	};
-	double point_3d_2[15] = {
-		2552,4000,0,
-		10618,4000,0,
-		10618,8000,0,
-		6600,12000,0,
-		2552,12000,0	
-	};
-
-
-	memcpy(mat_Img->data.fl,point_2d_1,sizeof(float)*10);
-	memcpy(mat_World->data.fl,point_3d_1,sizeof(double)*15);
-
-	//first point for r t matrix
-	CvMat* r_matrix;
-	CvMat* t_matrix;
-	CvMat* mrt_matrix;
-	r_matrix = cvCreateMat(3,1,CV_64F);
-	t_matrix = cvCreateMat(3,1,CV_64F);
-	get_r_t_matrix_by_points(r_matrix,t_matrix,cam_intrinsic_matrix,cam_distortion_coeffs, point_2d_1,point_3d_1,5);
-	mrt_matrix = getProjectMatrix(cam_intrinsic_matrix, r_matrix, t_matrix);
-	cvSave("r.xml", r_matrix);
-	cvSave("t.xml", t_matrix);
-	cvSave("mrt.xml", mrt_matrix);
-
-	//second point for r t matrix
-	CvMat* r_matrix_1;
-	CvMat* t_matrix_1;
-	CvMat* mrt_matrix_1;
-	r_matrix_1 = cvCreateMat(3, 1, CV_64F);
-	t_matrix_1 = cvCreateMat(3, 1, CV_64F);
-	get_r_t_matrix_by_points(r_matrix_1, t_matrix_1, cam_intrinsic_matrix, cam_distortion_coeffs, point_2d_2, point_3d_2, 5);
-	mrt_matrix_1 = getProjectMatrix(cam_intrinsic_matrix, r_matrix_1, t_matrix_1);
-	cvSave("r1.xml", r_matrix_1);
-	cvSave("t1.xml", t_matrix_1);
-	cvSave("mrt1.xml", mrt_matrix_1);
-
-	//3d重建
-	//校准第一个相机图像上的2d坐标
-	float left_u, left_v;
-	adjust_2d_point_uv(cam_intrinsic_matrix, cam_distortion_coeffs, 1542, 519, left_u, left_v);
-
-	float right_u, right_v;
-	adjust_2d_point_uv(cam_intrinsic_matrix2, cam_distortion_coeffs2, 1542, 519, right_u, right_v);
-
-	vector<float> vec;
-	vec = reproject3DPoint(mrt_matrix, mrt_matrix_1, left_u, left_v, right_u, right_v);
-
-	cvRelease((void**)&r_matrix);
-	cvRelease((void**)&t_matrix);
-	cvRelease((void**)&mrt_matrix);
-
-	cvRelease((void**)&r_matrix_1);
-	cvRelease((void**)&t_matrix_1);
-	cvRelease((void**)&mrt_matrix_1);
-}
-
 int GAMMA_LUT[256];
 void build_gamma_lut(float gamma)
 {
@@ -278,30 +157,149 @@ using namespace cv;
 
 void gamma(cv::Mat img)
 {
-
-
-	//build_gamma_lut(0.8);
-
 	for (int i = 0; i < img.rows; i++)
 	{
 		uchar * p_f = img.data + img.step * i;
 		for (int j = 0; j < img.cols; j++)
 		{
-
 			p_f[0] = GAMMA_LUT[p_f[0]];
 			p_f[1] = GAMMA_LUT[p_f[1]];
 			p_f[2] = GAMMA_LUT[p_f[2]];
-
 			p_f += img.channels();
 		}
 	}
 }
 
 
+int calc_3d_point(const string& left_camera_ip,double left_u, double left_v, const string& right_camera_ip, float right_u, float right_v) {
+	//3d重建
+	string xml_root_dir(get_pwd() + string("\\output\\xml"));
+
+	CvMat* left_cam_intrinsic_matrix;// = cvCreateMat(3, 3, CV_32FC1);
+	CvMat* left_cam_distortion_coeffs;// = cvCreateMat(1, 5, CV_32FC1);
+	CvMat* left_cam_r_matrix;
+	CvMat* left_cam_t_matrix;
+	CvMat* left_cam_mrt_matrix;
+
+	CvMat* right_cam_intrinsic_matrix;// = cvCreateMat(3, 3, CV_32FC1);
+	CvMat* right_cam_distortion_coeffs;// = cvCreateMat(1, 5, CV_32FC1);
+	CvMat* right_cam_r_matrix;
+	CvMat* right_cam_t_matrix;
+	CvMat* right_cam_mrt_matrix;
+
+	left_cam_intrinsic_matrix	= (CvMat*)cvLoad(string(xml_root_dir + "\\" + left_camera_ip + "_intrinsic_matrix.xml").c_str());
+	left_cam_distortion_coeffs	= (CvMat*)cvLoad(string(xml_root_dir + "\\" + left_camera_ip + "_distortion_coeffs.xml").c_str());
+	left_cam_r_matrix			= (CvMat*)cvLoad(string(xml_root_dir + "\\" + left_camera_ip + "_r.xml").c_str());
+	left_cam_t_matrix			= (CvMat*)cvLoad(string(xml_root_dir + "\\" + left_camera_ip + "_t.xml").c_str());
+	left_cam_mrt_matrix			= (CvMat*)cvLoad(string(xml_root_dir + "\\" + left_camera_ip + "_mrt.xml").c_str());
+
+	right_cam_intrinsic_matrix	= (CvMat*)cvLoad(string(xml_root_dir + "\\" + right_camera_ip + "_intrinsic_matrix.xml").c_str());
+	right_cam_distortion_coeffs = (CvMat*)cvLoad(string(xml_root_dir + "\\" + right_camera_ip + "_distortion_coeffs.xml").c_str());
+	right_cam_r_matrix			= (CvMat*)cvLoad(string(xml_root_dir + "\\" + right_camera_ip + "_r.xml").c_str());
+	right_cam_t_matrix			= (CvMat*)cvLoad(string(xml_root_dir + "\\" + right_camera_ip + "_t.xml").c_str());
+	right_cam_mrt_matrix		= (CvMat*)cvLoad(string(xml_root_dir + "\\" + right_camera_ip + "_mrt.xml").c_str());
+
+	float left_u_correct, left_v_correct;
+	adjust_2d_point_uv(left_cam_intrinsic_matrix, left_cam_distortion_coeffs, left_u, left_v, left_u_correct, left_v_correct);
+
+	float right_u_correct, right_v_correct;
+	adjust_2d_point_uv(right_cam_intrinsic_matrix, right_cam_distortion_coeffs, right_u, right_v, right_u_correct, right_v_correct);
+
+	//3d coordinate
+	vector<float> vec;
+	vec = reproject3DPoint(left_cam_mrt_matrix, right_cam_mrt_matrix, left_u, left_v, right_u, right_v);
+
+	string data_root_dir(get_pwd() + string("\\output\\data"));
+	create_dir(data_root_dir);
+	string name(data_root_dir + "\\" + left_camera_ip + "_" + right_camera_ip + "_3d.txt");
+	std::ofstream ofs(name, std::ofstream::out);
+	if (ofs.fail()) {
+		return -1;
+	}
+	char buff[1024];
+	snprintf(buff, sizeof buff, "left(%f,%f), right(%f,%f), 3d(%f,%f,%f)\n", left_u, left_v, right_u, right_v, vec[0], vec[1], vec[2]);
+	ofs.write(buff, strlen(buff));
+	ofs.close();
+
+	return 0;
+}
+
+int parse_point_from_file(const string& name, float* point_2d, double* point_3d, int size, int& count) {
+	ifstream ifs(name, std::fstream::in);
+	if (ifs.fail()) {
+		return -1;
+	}
+	char cstr_line[1024];
+	count = 0;
+	int i = 0;
+	int j = 0;
+	while (ifs.getline(cstr_line, sizeof cstr_line, '\n')) {
+		char* pch = strtok(cstr_line, ",");
+		while (pch != NULL) {//five points per line
+			point_2d[i++] = std::atof(pch);
+			pch = strtok(NULL, ",");
+			point_2d[i++] = std::atof(pch);
+			pch = strtok(NULL, ",");
+			point_3d[j++] = std::atof(pch);
+			pch = strtok(NULL, ",");
+			point_3d[j++] = std::atof(pch);
+			pch = strtok(NULL, ",");
+			point_3d[j++] = std::atof(pch);
+			pch = strtok(NULL, ",");
+		}
+		++count;
+	}
+	ifs.close();
+	return count;
+}
+
+int calc_extrinsic_camera_params(const string& camera_ip ) {
+
+	const static int MAX_POINT_COUNT = 20;//20 points at most!!
+
+	float point_2d_1[MAX_POINT_COUNT * 2] = {};
+	double point_3d_1[MAX_POINT_COUNT * 3] = {};
+
+	CvMat * cam_intrinsic_matrix;// = cvCreateMat(3, 3, CV_32FC1);
+	CvMat * cam_distortion_coeffs;// = cvCreateMat(1, 5, CV_32FC1);
+
+	CvMat* r_matrix;
+	CvMat* t_matrix;
+	CvMat* mrt_matrix;
+
+	string xml_root_dir(get_pwd() + string("\\output\\xml"));
+	string data_root_dir(get_pwd() + string("\\output\\data"));
+
+	create_dir(xml_root_dir);
+
+	cam_intrinsic_matrix = (CvMat*)cvLoad(string(xml_root_dir + "\\" + camera_ip + "_intrinsic_matrix.xml").c_str());
+	cam_distortion_coeffs = (CvMat*)cvLoad(string(xml_root_dir + "\\" + camera_ip + "_distortion_coeffs.xml").c_str());
+
+	int count = 0;
+	if (0 > parse_point_from_file(data_root_dir + "\\" + camera_ip + ".jpg.txt", point_2d_1, point_3d_1, sizeof(point_2d_1) / sizeof(float), count))
+		return -1;
+
+	r_matrix = cvCreateMat(3, 1, CV_64F);
+	t_matrix = cvCreateMat(3, 1, CV_64F);
+	get_r_t_matrix_by_points(r_matrix, t_matrix, cam_intrinsic_matrix, cam_distortion_coeffs, point_2d_1, point_3d_1, count);
+	mrt_matrix = getProjectMatrix(cam_intrinsic_matrix, r_matrix, t_matrix);
+
+	string name_prefix{ xml_root_dir + "\\" + string(camera_ip) };
+	cvSave( (name_prefix + "_r.xml").c_str(), r_matrix);
+	cvSave((name_prefix + "_t.xml").c_str(), t_matrix);
+	cvSave((name_prefix + "_mrt.xml").c_str(), mrt_matrix);
+
+	return 0;
+}
+
+
 //img_num:图像的组数
 //corner_point_num:角点个数
 //chessboard_w：棋盘格横轴方向的长度（棋盘格必须为正方形，所以横轴和纵轴长度相同）
-int run_calibration(string& camera_id, int in_img_num, int in_corner_point_num_x, int in_chessboard_x, std::function<void(cv::Mat* mat)> showImage, std::function<bool(int,int)> check_corner) {
+int run_calibration(string& camera_id, int in_img_num, int in_corner_point_num_x, int in_chessboard_x, std::function<void(cv::Mat* mat)> showImage, 
+	std::function<bool(int,int)> check_corner,
+	std::function<void(const string&)> display_caption
+	) {
 
 	build_gamma_lut(0.45f);
 
@@ -330,7 +328,6 @@ int run_calibration(string& camera_id, int in_img_num, int in_corner_point_num_x
 	create_dir(str_pic_root_dir);
 	create_dir(xml_root_dir);
 	create_dir(bmp_root_dir);
-
 
 	CvSize cam_board_sz = cvSize(cam_board_w, cam_board_h);
 	CvMat*cam_image_points = cvCreateMat(cam_board_n*(img_num), 2, CV_32FC1);
@@ -365,16 +362,14 @@ int run_calibration(string& camera_id, int in_img_num, int in_corner_point_num_x
 	//
 	//
 	*/
-	fstream cam_data;
-	cam_data.open("output\\TXT\\cam_corners.txt", ofstream::out);
-	fstream cam_object_data;
-	cam_object_data.open("output\\TXT\\cam_object_data.txt", ofstream::out);
 	//process the prj image so that we can easy find cornner
 	for (int ii = 1; ii < img_num; ii++)
 	{
 		char cambuf[1024] = { 0 };
 		sprintf(cambuf, "%s\\%s\\g%d.jpg", str_pic_root_dir.c_str(), camera_id.c_str(), ii);
-		cout << cambuf << endl;
+
+		display_caption(cambuf);
+
 		IplImage *cam_image_color = cvLoadImage(cambuf);
 		IplImage * cam_image = cvCreateImage(cvGetSize(cam_image_color), 8, 1);
 		cvCvtColor(cam_image_color, cam_image, CV_BGR2GRAY);
@@ -405,8 +400,6 @@ int run_calibration(string& camera_id, int in_img_num, int in_corner_point_num_x
 				CV_MAT_ELEM(*cam_object_points, float, i, 0) = (j / cam_board_w)*cam_Dx;
 				CV_MAT_ELEM(*cam_object_points, float, i, 1) = (j % cam_board_w)*cam_Dy;
 				CV_MAT_ELEM(*cam_object_points, float, i, 2) = 0.0f;
-				cam_data << cam_corners[j].x << "\t" << cam_corners[j].y << "\n";
-				cam_object_data << (j / cam_board_w)*cam_Dx << "\t" << (j %cam_board_w)*cam_Dy << "\t0\n";
 			}
 			CV_MAT_ELEM(*cam_point_counts, int, successes, 0) = cam_board_n;
 			successes++;
@@ -418,8 +411,9 @@ int run_calibration(string& camera_id, int in_img_num, int in_corner_point_num_x
 
 	}
 
-	if (successes < 2)
-		exit(0);
+	if (successes < 2){
+		return -2;
+	}
 	/*
 	//restore the success point
 	*/
@@ -507,3 +501,54 @@ int run_calibration(string& camera_id, int in_img_num, int in_corner_point_num_x
 	return 0;
 }
 
+vector<float> project_3d_to_2d(const string& camera_ip, double x, double y, double z) {
+
+	//::cvProjectPoints2(wpt, r_matrix, t_matrix, cam_intrinsic_matrix, cam_distortion_coeffs, ipt);
+
+	string xml_root_dir(get_pwd() + string("\\output\\xml"));
+
+	CvMat* cam_intrinsic_matrix;// = cvCreateMat(3, 3, CV_32FC1);
+	CvMat* cam_distortion_coeffs;// = cvCreateMat(1, 5, CV_32FC1);
+	CvMat* cam_r_matrix;
+	CvMat* cam_t_matrix;
+	CvMat* cam_mrt_matrix;
+
+	CvMat * ipt= cvCreateMat(1, 2, CV_32FC1);
+	CvMat * wpt = cvCreateMat(1, 3, CV_64FC1);
+	wpt->data.db[0] = x;
+	wpt->data.db[1] = y;
+	wpt->data.db[2] = z;
+
+	cam_intrinsic_matrix = (CvMat*)cvLoad(string(xml_root_dir + "\\" + camera_ip + "_intrinsic_matrix.xml").c_str());
+	cam_distortion_coeffs = (CvMat*)cvLoad(string(xml_root_dir + "\\" + camera_ip + "_distortion_coeffs.xml").c_str());
+	cam_r_matrix = (CvMat*)cvLoad(string(xml_root_dir + "\\" + camera_ip + "_r.xml").c_str());
+	cam_t_matrix = (CvMat*)cvLoad(string(xml_root_dir + "\\" + camera_ip + "_t.xml").c_str());
+	cam_mrt_matrix = (CvMat*)cvLoad(string(xml_root_dir + "\\" + camera_ip + "_mrt.xml").c_str());
+
+	::cvProjectPoints2(wpt, cam_r_matrix, cam_t_matrix, cam_intrinsic_matrix, cam_distortion_coeffs, ipt);
+
+	vector<float> ret = {ipt->data.fl[0], ipt->data.fl[1]};
+
+	cvRelease((void**)&ipt);
+	cvRelease((void**)&wpt);
+
+	return ret;
+}
+
+void get_homography(float x1, float y1, float x2, float y2) {
+
+	CvMat * ipt = cvCreateMat(1, 2, CV_32FC1);
+	CvMat * wpt = cvCreateMat(1, 2, CV_32FC1);
+	ipt->data.fl[0] = x1;
+	ipt->data.fl[1] = y1;
+
+	wpt->data.fl[0] = x1;
+	wpt->data.fl[1] = y1;
+
+	CvMat* homography;
+	cvFindHomography(ipt, wpt, homography, CV_RANSAC);
+	cvSave("H.xml", homography);
+
+	cvRelease((void**)(&ipt));
+	cvRelease((void**)(&wpt));
+}
